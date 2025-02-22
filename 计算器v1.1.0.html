@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>张梁技能计算器 v1.1.0</title>
+    <style>
+        :root {
+            --primary-color: #4CAF50;
+            --secondary-color: #2196F3;
+            --danger-color: #ff4444;
+            --text-dark: #333;
+            --bg-light: #f9f9f9;
+        }
+
+        body {
+            padding: 20px;
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 0 auto;
+            background: white;
+        }
+
+        #fangInput {
+            width: 100%;
+            padding: 12px;
+            margin: 15px 0;
+            border: 2px solid var(--primary-color);
+            border-radius: 8px;
+            font-size: 20px;
+            background: var(--bg-light);
+            box-sizing: border-box;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+            margin: 15px 0;
+        }
+
+        .action-btn {
+            flex: 1;
+            padding: 12px;
+            border-radius: 8px;
+            font-weight: bold;
+            border: 2px solid;
+            transition: all 0.2s;
+            font-size: 14px;
+        }
+
+        #required-section {
+            margin: 20px 0;
+            padding: 15px;
+            border-radius: 8px;
+            border: 2px solid var(--primary-color);
+            background: var(--bg-light);
+        }
+
+        #required-cards {
+            font-size: 24px;
+            font-weight: bold;
+            color: var(--primary-color);
+            min-height: 36px;
+            text-align: center;
+        }
+
+        .poker-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 8px;
+            margin: 20px 0;
+        }
+
+        .poker-btn {
+            aspect-ratio: 1;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+            border: 2px solid;
+            background: white;
+            transition: transform 0.2s;
+            font-size: 20px;
+        }
+
+        /* 优化后的表格样式 */
+        .result-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0 8px;
+            margin: 20px 0;
+        }
+        .result-table th,
+        .result-table td {
+            padding: 12px;
+            background: white;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            text-align: center;  /* 居中对齐 */
+            vertical-align: middle;  /* 垂直居中 */
+        }
+
+        .adopt-btn {
+            padding: 8px 16px !important;
+            font-size: 14px !important;
+            min-width: 70px;
+            border-radius: 6px !important;
+            transition: all 0.2s !important;
+        }
+        .adopt-btn:hover {
+            transform: scale(1.05);
+            opacity: 0.9;
+        }
+
+        /* 颜色定义 */
+        #clearBtn { background: var(--danger-color); color: white; }
+        #undoBtn { background: var(--secondary-color); color: white; }
+        .red { border-color: var(--danger-color); color: var(--danger-color); }
+        .black { border-color: var(--text-dark); color: var(--text-dark); }
+        .result-table th { background: var(--primary-color); color: white; }
+
+        @media (max-width: 480px) {
+            .result-table {
+                font-size: 14px;
+            }
+            .result-table th,
+            .result-table td {
+                padding: 8px;
+            }
+            .adopt-btn {
+                padding: 6px 12px !important;
+                min-width: 60px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <h2>🌟 张梁技能计算器</h2>
+    
+    <input type="text" id="fangInput" placeholder="点击下方选择手牌" readonly>
+
+    <div class="action-buttons">
+        <button class="action-btn" id="clearBtn" onclick="clearInput()">清空</button>
+        <button class="action-btn" id="undoBtn" onclick="undoLastInput()">撤回</button>
+    </div>
+
+    <div id="required-section">
+        <div>Key牌：</div>
+        <div id="required-cards">请先选择手牌</div>
+    </div>
+
+    <div class="poker-grid">
+        <button class="poker-btn red" data-value="1">A</button>
+        <button class="poker-btn black" data-value="2">2</button>
+        <button class="poker-btn red" data-value="3">3</button>
+        <button class="poker-btn black" data-value="4">4</button>
+        <button class="poker-btn red" data-value="5">5</button>
+        <button class="poker-btn black" data-value="6">6</button>
+        <button class="poker-btn red" data-value="7">7</button>
+        <button class="poker-btn black" data-value="8">8</button>
+        <button class="poker-btn red" data-value="9">9</button>
+        <button class="poker-btn black" data-value="10">10</button>
+        <button class="poker-btn red" data-value="11">J</button>
+        <button class="poker-btn black" data-value="12">Q</button>
+        <button class="poker-btn red" data-value="13">K</button>
+    </div>
+
+    <div id="result"></div>
+
+    <script>
+        const pokerMap = {
+            1: 'A', 2: '2', 3: '3', 4: '4', 5: '5',
+            6: '6', 7: '7', 8: '8', 9: '9', 10: '10',
+            11: 'J', 12: 'Q', 13: 'K'
+        };
+
+        let selectedNumbers = [];
+
+        function calculateRemainingPredictions(usedCombo) {
+            let remaining = [...selectedNumbers];
+            const tempUsed = [...usedCombo];
+            while(tempUsed.length > 0) {
+                const num = tempUsed.pop();
+                const index = remaining.indexOf(num);
+                if(index > -1) remaining.splice(index, 1);
+            }
+
+            const predictions = new Set();
+            for (let mask = 3; mask < (1 << remaining.length); mask++) {
+                const combo = [];
+                for (let i = 0; i < remaining.length; i++) {
+                    if (mask & (1 << i)) combo.push(remaining[i]);
+                }
+                if(combo.length < 2) continue;
+                
+                const sum = combo.reduce((a, b) => a + b, 0);
+                const required = 36 - sum;
+                if (required >= 1 && required <= 13) predictions.add(required);
+            }
+            return Array.from(predictions).sort((a, b) => b - a);
+        }
+
+        function calculate() {
+            const resultDiv = document.getElementById("result");
+            const requiredDiv = document.getElementById("required-cards");
+            
+            resultDiv.innerHTML = '';
+            const validCombinations = [];
+            const seen = new Set();
+            const allRequired = new Set();
+
+            // 遍历所有组合
+            for (let mask = 3; mask < (1 << selectedNumbers.length); mask++) {
+                const combo = [];
+                for (let i = 0; i < selectedNumbers.length; i++) {
+                    if (mask & (1 << i)) combo.push(selectedNumbers[i]);
+                }
+                if(combo.length < 2) continue;
+
+                const sum = combo.reduce((a, b) => a + b, 0);
+                if(sum >= 36) continue;
+
+                const required = 36 - sum;
+                if(required < 1 || required > 13) continue;
+
+                allRequired.add(required);
+                const predictions = calculateRemainingPredictions(combo);
+
+                const sortedCombo = [...combo].sort((a,b) => a-b);
+                const key = `${sortedCombo.join(',')}|${required}`;
+                
+                if(!seen.has(key)) {
+                    seen.add(key);
+                    validCombinations.push({ 
+                        combo: sortedCombo, 
+                        required, 
+                        predictions 
+                    });
+                }
+            }
+
+            // 新版排序逻辑（两重排序）
+            validCombinations.sort((a, b) => {
+                // 第一级：需要牌值降序
+                const requiredDiff = b.required - a.required;
+                if (requiredDiff !== 0) return requiredDiff;
+                
+                // 第二级：预测列数量降序
+                return b.predictions.length - a.predictions.length;
+            });
+
+            updateRequiredDisplay(allRequired);
+            updateResultTable(validCombinations);
+        }
+
+        function updateRequiredDisplay(requiredSet) {
+            const requiredDiv = document.getElementById('required-cards');
+            if(requiredSet.size > 0) {
+                requiredDiv.innerHTML = Array.from(requiredSet)
+                    .sort((a,b) => b-a)
+                    .map(n => pokerMap[n])
+                    .join(' ');
+                requiredDiv.style.color = '#4CAF50';
+            } else {
+                requiredDiv.innerHTML = "无有效组合";
+                requiredDiv.style.color = '#ff4444';
+            }
+        }
+
+        function updateResultTable(combinations) {
+            const resultDiv = document.getElementById("result");
+            
+            if (combinations.length > 0) {
+                let html = `
+                    <table class="result-table">
+                        <thead>
+                            <tr>
+                                <th>组合</th>
+                                <th>需要</th>
+                                <th>预测</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody>`;
+
+                combinations.forEach(item => {
+                    const symbols = item.combo.map(n => pokerMap[n]).join('+');
+                    const requiredSymbol = pokerMap[item.required] || item.required;
+                    const predictions = item.predictions.length > 0 
+                        ? item.predictions.map(n => pokerMap[n]).join(' ') 
+                        : "无";
+
+                    html += `
+                        <tr>
+                            <td>${symbols}</td>
+                            <td style="color:#4CAF50">${requiredSymbol}</td>
+                            <td>${predictions}</td>
+                            <td>
+                                <button class="adopt-btn" 
+                                        onclick="adoptCombination([${item.combo}])">
+                                    采用
+                                </button>
+                            </td>
+                        </tr>`;
+                });
+
+                html += `</tbody></table>`;
+                resultDiv.innerHTML = html;
+            } else {
+                resultDiv.innerHTML = "<div style='color:#ff4444; margin-top:15px'>❌ 当前无法触发</div>";
+            }
+        }
+
+        function updateInputDisplay() {
+            document.getElementById('fangInput').value = selectedNumbers
+                .map(n => pokerMap[n])
+                .join(' ');
+        }
+
+        function clearInput() {
+            selectedNumbers = [];
+            updateInputDisplay();
+            calculate();
+        }
+
+        function undoLastInput() {
+            if (selectedNumbers.length > 0) {
+                selectedNumbers.pop();
+                updateInputDisplay();
+                calculate();
+            }
+        }
+
+        function adoptCombination(usedNumbers) {
+            const temp = [...selectedNumbers];
+            usedNumbers.forEach(num => {
+                const index = temp.indexOf(num);
+                if (index !== -1) temp.splice(index, 1);
+            });
+            selectedNumbers = temp;
+            updateInputDisplay();
+            calculate();
+        }
+
+        // 事件监听初始化
+        function initEventListeners() {
+            document.querySelectorAll('.poker-grid .poker-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const value = parseInt(this.dataset.value);
+                    selectedNumbers.push(value);
+                    updateInputDisplay();
+                    calculate();
+                    
+                    this.style.transform = 'scale(0.95)';
+                    setTimeout(() => this.style.transform = '', 200);
+                });
+            });
+        }
+
+        // 初始化程序
+        function init() {
+            initEventListeners();
+            calculate();
+        }
+
+        init();
+    </script>
+</body>
+</html>

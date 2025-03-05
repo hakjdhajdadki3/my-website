@@ -1,0 +1,615 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>张梁计算器专业版 v4.7.2</title>
+    <style>
+        :root {
+            /* 重构色阶系统 - 9级科学色阶 */
+            --primary-50: #F5F4FF;
+            --primary-100: #DEDBFF;
+            --primary-200: #C2BAFF;
+            --primary-300: #A396FF;
+            --primary-400: #8478FF;
+            --primary-500: #6451F1;
+            --primary-600: #4838D1;
+            --primary-700: #3122B0;
+            --primary-800: #1E108F;
+            --primary-900: #0F006E;
+            
+            --secondary-500: #FF5C8D;
+            --error-500: #FF4D4D;
+            
+            /* 8px基准间距系统 */
+            --space-0: 0;
+            --space-1: 0.5rem;  /* 8px */
+            --space-2: 1rem;    /* 16px */
+            --space-3: 1.5rem;  /* 24px */
+            --space-4: 2rem;    /* 32px */
+
+            --surface-100: #FFFFFF;
+            --surface-200: #F8F9FC;
+            --surface-300: #EFF1F6;
+            --text-primary: #1A1C22;
+            --text-secondary: #5E6473;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background: var(--surface-200);
+            color: var(--text-primary);
+            line-height: 1.6;
+            padding: var(--space-4) var(--space-2);
+            margin: 0;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: minmax(300px, 1.1fr) minmax(250px, 0.9fr);
+            gap: var(--space-3);
+            align-items: start;
+        }
+
+        .result-panel {
+            background: var(--surface-100);
+            border-radius: var(--space-2);
+            padding: var(--space-3);
+            box-shadow: 0 12px 32px -8px rgba(0,0,0,0.08);
+            border: 1px solid rgba(0,0,0,0.05);
+            position: sticky;
+            top: var(--space-2);
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .operate-panel {
+            background: var(--surface-100);
+            border-radius: var(--space-2);
+            padding: var(--space-3);
+            box-shadow: 
+                0 8px 24px -6px rgba(var(--primary-500),0.12),
+                0 0 0 1px rgba(0,0,0,0.05);
+            max-width: 100%;
+            box-sizing: border-box;
+        }
+
+        #fangInput {
+            width: 100%;
+            padding: var(--space-2);
+            border: 1px solid var(--surface-300);
+            border-radius: 14px;
+            font-size: 1rem;
+            background: var(--surface-200);
+            transition: all 0.2s ease-out;
+            text-align: center;
+            font-weight: 600;
+            letter-spacing: 0.05em;
+            box-sizing: border-box;
+        }
+
+        #fangInput:focus {
+            outline: none;
+            border-color: var(--primary-300);
+            box-shadow: 0 0 0 3px rgba(var(--primary-500),0.15);
+        }
+
+        .action-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: var(--space-1);
+            margin: var(--space-3) 0;
+        }
+
+        .action-btn {
+            padding: var(--space-1) var(--space-2);
+            border-radius: 14px;
+            border: none;
+            font-weight: 600;
+            cursor: pointer;
+            transition: 
+                transform 0.2s,
+                box-shadow 0.2s;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: var(--space-1);
+        }
+
+        #clearBtn {
+            background: linear-gradient(180deg, var(--error-500) 0%, #FF3636 100%);
+            color: white;
+        }
+
+        #undoBtn {
+            background: linear-gradient(180deg, var(--primary-500) 0%, var(--primary-600) 100%);
+            color: white;
+        }
+
+        .action-btn:active {
+            transform: scale(0.96);
+        }
+
+        #required-section {
+            background: rgba(var(--primary-500),0.05);
+            border-radius: 14px;
+            padding: var(--space-1) var(--space-2);
+            margin: var(--space-2) 0;
+            border: 1px dashed rgba(var(--primary-500),0.3);
+        }
+
+        #required-cards {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--primary-500);
+            display: flex;
+            align-items: center;
+            gap: var(--space-1);
+        }
+
+        #estimate-section {
+            background: rgba(var(--secondary-500),0.05);
+            border-radius: 14px;
+            padding: var(--space-1) var(--space-2);
+            margin: var(--space-3) 0;
+            border: 1px dashed rgba(var(--secondary-500),0.3);
+        }
+
+        .poker-grid {
+            display: grid;
+            grid-template-columns: repeat(7, minmax(0, 1fr));
+            gap: var(--space-1);
+        }
+
+        .poker-btn {
+            aspect-ratio: 1;
+            border-radius: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            border: 1px solid;
+            background: var(--surface-100);
+            transition: 
+                transform 0.2s,
+                box-shadow 0.2s,
+                background 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.125rem;
+        }
+
+        .poker-btn.red {
+            color: var(--error-500);
+            border-color: rgba(var(--error-500),0.2);
+        }
+
+        .poker-btn.black {
+            color: var(--text-primary);
+            border-color: rgba(0,0,0,0.1);
+        }
+
+        .poker-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px -2px rgba(0,0,0,0.1);
+            background: var(--surface-200);
+        }
+
+        .result-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: var(--surface-100);
+            border-radius: 14px;
+            overflow: hidden;
+        }
+
+        .result-table th {
+            background: linear-gradient(180deg, var(--primary-500) 0%, var(--primary-600) 100%);
+            color: white;
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 0.875rem;
+            padding: var(--space-2);
+            text-align: center;
+            letter-spacing: 0.05em;
+        }
+
+        .result-table td {
+            padding: var(--space-2);
+            text-align: center;
+            border-bottom: 1px solid var(--surface-300);
+            font-weight: 500;
+        }
+
+        .result-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .adopt-btn {
+            padding: var(--space-1) var(--space-2);
+            border-radius: 10px;
+            background: var(--primary-500);
+            color: white;
+            border: none;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .adopt-btn:hover {
+            opacity: 0.9;
+            transform: translateY(-1px);
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                grid-template-columns: 1fr;
+                gap: var(--space-3);
+                padding: var(--space-2);
+            }
+            
+            .result-panel {
+                position: static;
+                max-height: none;
+            }
+
+            .poker-grid {
+                grid-template-columns: repeat(5, minmax(0, 1fr));
+                gap: var(--space-1);
+            }
+
+            .poker-btn {
+                font-size: 1rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .poker-grid {
+                grid-template-columns: repeat(4, minmax(0, 1fr));
+            }
+
+            #fangInput {
+                font-size: 0.875rem;
+                padding: var(--space-1);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="result-panel">
+            <div id="result"></div>
+        </div>
+
+        <div class="operate-panel">
+            <input type="text" id="fangInput" placeholder="点击下方选择方牌" readonly>
+
+            <div class="action-buttons">
+                <button class="action-btn" id="clearBtn">清空</button>
+                <button class="action-btn" id="undoBtn">撤回</button>
+            </div>
+
+            <div id="required-section">
+                <div id="required-cards">
+                    <span>Key</span>
+                    <span id="required-values">请先选择方牌</span>
+                </div>
+            </div>
+
+            <div id="estimate-section">
+                <div id="estimate-result">无</div>
+            </div>
+
+            <div class="poker-grid">
+                <button class="poker-btn red" data-value="1">A</button>
+                <button class="poker-btn black" data-value="2">2</button>
+                <button class="poker-btn red" data-value="3">3</button>
+                <button class="poker-btn black" data-value="4">4</button>
+                <button class="poker-btn red" data-value="5">5</button>
+                <button class="poker-btn black" data-value="6">6</button>
+                <button class="poker-btn red" data-value="7">7</button>
+                <button class="poker-btn black" data-value="8">8</button>
+                <button class="poker-btn red" data-value="9">9</button>
+                <button class="poker-btn black" data-value="10">10</button>
+                <button class="poker-btn red" data-value="11">J</button>
+                <button class="poker-btn black" data-value="12">Q</button>
+                <button class="poker-btn red" data-value="13">K</button>
+            </div>
+        </div>
+    </div>
+<script>
+    (function() {
+        'use strict';
+
+        const pokerMap = {
+            1: 'A', 2: '2', 3: '3', 4: '4', 5: '5',
+            6: '6', 7: '7', 8: '8', 9: '9', 10: '10',
+            11: 'J', 12: 'Q', 13: 'K'
+        };
+
+        let selectedNumbers = [];
+        let historyStack = [];
+
+        function calculateRemainingPredictions(usedCombo) {
+            let remaining = [...selectedNumbers];
+            usedCombo.forEach(num => {
+                const index = remaining.indexOf(num);
+                if (index > -1) remaining.splice(index, 1);
+            });
+
+            const predictions = new Set();
+            
+            if (remaining.length >= 2) {
+                for (let i = 0; i < remaining.length; i++) {
+                    for (let j = i + 1; j < remaining.length; j++) {
+                        const sum = remaining[i] + remaining[j];
+                        const required = 36 - sum;
+                        if (required >= 1 && required <= 13) predictions.add(required);
+                    }
+                }
+            }
+
+            for (let mask = 3; mask < (1 << remaining.length); mask++) {
+                const combo = [];
+                for (let i = 0; i < remaining.length; i++) {
+                    if (mask & (1 << i)) combo.push(remaining[i]);
+                }
+                if (combo.length < 2) continue;
+                
+                const sum = combo.reduce((a, b) => a + b, 0);
+                const required = 36 - sum;
+                if (required >= 1 && required <= 13) predictions.add(required);
+            }
+            
+            return Array.from(predictions).sort((a, b) => b - a);
+        }
+
+        function calculateEstimation(baseRequirements) {
+            const estimateDiv = document.getElementById('estimate-result');
+            estimateDiv.innerHTML = "";
+
+            if (selectedNumbers.length === 0) {
+                estimateDiv.textContent = "无";
+                return;
+            }
+
+            const percentageMap = {
+                12: { text: "92%", color: "#4CAF50" },
+                11: { text: "85%", color: "#2196F3" },
+                10: { text: "77%", color: "#8b5cf6" }
+            };
+
+            const countDict = {};
+            const existingKeys = new Set(baseRequirements);
+
+            for (let addCard = 1; addCard <= 13; addCard++) {
+                const testHand = [...selectedNumbers, addCard];
+                const solutions = new Set();
+
+                for (let mask = 3; mask < (1 << testHand.length); mask++) {
+                    let sum = 0;
+                    const combo = [];
+                    for (let i = 0; i < testHand.length; i++) {
+                        if (mask & (1 << i)) {
+                            combo.push(testHand[i]);
+                            sum += testHand[i];
+                        }
+                    }
+                    if (combo.length < 2 || sum >= 36) continue;
+
+                    const required = 36 - sum;
+                    if (required >= 1 && required <= 13 && !existingKeys.has(required)) {
+                        solutions.add(required);
+                    }
+                }
+
+                solutions.forEach(sol => countDict[sol] = (countDict[sol] || 0) + 1);
+            }
+
+            const mustHave = [];
+            const probGroups = new Map();
+            Object.entries(countDict).forEach(([card, count]) => {
+                const num = parseInt(card);
+                const groupCount = Math.min(count, 12);
+                
+                if (count === 13) mustHave.push(num);
+                else if (count >= 10) {
+                    if (!probGroups.has(groupCount)) probGroups.set(groupCount, []);
+                    probGroups.get(groupCount).push(num);
+                }
+            });
+
+            const output = [];
+            if (mustHave.length > 0) {
+                output.push(`<div style="color:#9C27B0">集方必增Key：${
+                    mustHave.sort((a,b) => b - a).map(n => pokerMap[n]).join(' ')
+                }</div>`);
+            }
+
+            const probElements = [];
+            Array.from(probGroups.entries())
+                .sort(([a], [b]) => b - a)
+                .forEach(([count, cards]) => {
+                    probElements.push(
+                        `<span style="color:${percentageMap[count].color}">${
+                            cards.sort((a,b) => b - a).map(n => pokerMap[n]).join(' ')
+                        } <strong>${percentageMap[count].text}</strong></span>`
+                    );
+                });
+
+            if (probElements.length > 0) {
+                output.push(`<div>集方增Key：${probElements.join(' ')}</div>`);
+            }
+
+            estimateDiv.innerHTML = output.length > 0 
+                ? output.join("") 
+                : '<span style="color:var(--error-500)">无预测结果</span>';
+        }
+
+        function calculate() {
+            const estimateDiv = document.getElementById('estimate-result');
+            estimateDiv.innerHTML = '';
+
+            if (selectedNumbers.length === 0) {
+                updateRequiredDisplay(new Set());
+                updateResultTable([]);
+                estimateDiv.textContent = "无";
+                return;
+            }
+
+            const totalSum = selectedNumbers.reduce((a, b) => a + b, 0);
+            if (totalSum < 23) {
+                updateRequiredDisplay(new Set());
+                updateResultTable([]);
+                estimateDiv.textContent = "无";
+                return;
+            }
+
+            const validCombinations = [];
+            const seen = new Set();
+            const allRequired = new Set();
+
+            for (let mask = 3; mask < (1 << selectedNumbers.length); mask++) {
+                const combo = [];
+                for (let i = 0; i < selectedNumbers.length; i++) {
+                    if (mask & (1 << i)) combo.push(selectedNumbers[i]);
+                }
+                if(combo.length < 2) continue;
+
+                const sum = combo.reduce((a, b) => a + b, 0);
+                if(sum >= 36) continue;
+
+                const required = 36 - sum;
+                if(required < 1 || required > 13) continue;
+
+                allRequired.add(required);
+                const predictions = calculateRemainingPredictions(combo);
+
+                const sortedCombo = [...combo].sort((a,b) => a - b);
+                const key = `${sortedCombo.join(',')}|${required}`;
+                
+                if(!seen.has(key)) {
+                    seen.add(key);
+                    validCombinations.push({ 
+                        combo: sortedCombo, 
+                        required, 
+                        predictions 
+                    });
+                }
+            }
+
+            validCombinations.sort((a, b) => b.required - a.required);
+            updateRequiredDisplay(allRequired);
+            updateResultTable(validCombinations);
+            calculateEstimation(allRequired);
+        }
+
+        function updateRequiredDisplay(requiredSet) {
+            const container = document.getElementById('required-cards');
+            const valueSpan = document.getElementById('required-values');
+            
+            if (requiredSet.size > 0) {
+                valueSpan.textContent = Array.from(requiredSet)
+                    .sort((a,b) => b - a)
+                    .map(n => pokerMap[n])
+                    .join(' ');
+                container.style.color = 'var(--primary-500)';
+            } else {
+                valueSpan.textContent = "无有效组合";
+                container.style.color = 'var(--error-500)';
+            }
+        }
+
+        function updateResultTable(combinations) {
+            const resultDiv = document.getElementById("result");
+            
+            if (combinations.length > 0) {
+                let html = `<table class="result-table">
+                    <thead><tr>
+                        <th>组合</th><th>需要</th><th>预测</th><th>操作</th>
+                    </tr></thead><tbody>`;
+
+                combinations.forEach(item => {
+                    html += `<tr>
+                        <td>${item.combo.map(n => pokerMap[n]).join('+')}</td>
+                        <td style="color:var(--primary-500)">${pokerMap[item.required]}</td>
+                        <td>${item.predictions.map(n => pokerMap[n]).join(' ') || "无"}</td>
+                        <td><button class="adopt-btn" data-combo='${JSON.stringify(item.combo)}'>采用</button></td>
+                    </tr>`;
+                });
+
+                html += `</tbody></table>`;
+                resultDiv.innerHTML = html;
+
+                document.querySelectorAll('.adopt-btn').forEach(btn => {
+                    btn.addEventListener('click', function() {
+                        const combo = JSON.parse(this.dataset.combo);
+                        adoptCombination(combo);
+                    });
+                });
+            } else {
+                resultDiv.innerHTML = `<div style='color:var(--error-500); padding:1rem; text-align:center'>❌ 当前无法触发技能</div>`;
+            }
+        }
+
+        function updateInputDisplay() {
+            document.getElementById('fangInput').value = 
+                selectedNumbers.map(n => pokerMap[n]).join(' ');
+        }
+
+        function adoptCombination(usedNumbers) {
+            const temp = [...selectedNumbers];
+            usedNumbers.forEach(num => {
+                const index = temp.indexOf(num);
+                if (index !== -1) temp.splice(index, 1);
+            });
+            selectedNumbers = temp;
+            historyStack.push([...selectedNumbers]);
+            updateViews();
+        }
+
+        function updateViews() {
+            updateInputDisplay();
+            calculate();
+        }
+
+        function initEventListeners() {
+            document.querySelectorAll('.poker-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const value = parseInt(this.dataset.value);
+                    selectedNumbers.push(value);
+                    historyStack.push([...selectedNumbers]);
+                    updateViews();
+                    
+                    this.style.transform = 'scale(0.95)';
+                    setTimeout(() => this.style.transform = '', 150);
+                });
+            });
+
+            document.getElementById('clearBtn').addEventListener('click', () => {
+                selectedNumbers = [];
+                historyStack = [];
+                updateViews();
+            });
+
+            document.getElementById('undoBtn').addEventListener('click', () => {
+                if (historyStack.length > 0) {
+                    historyStack.pop();
+                    selectedNumbers = historyStack[historyStack.length - 1] || [];
+                    updateViews();
+                }
+            });
+        }
+
+        function init() {
+            initEventListeners();
+            calculate();
+            updateInputDisplay();
+        }
+
+        document.addEventListener('DOMContentLoaded', init);
+    })();
+</script>
+</body>
+</html>
